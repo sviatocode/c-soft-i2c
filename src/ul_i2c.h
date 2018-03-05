@@ -1,74 +1,61 @@
-/** \addtogroup group_i2c I2C
-  * For software I2C define functions/macros
-  *     I2C_SOFT
-  *     i2c_scl_0() - set SCL to 0
-  *     i2c_scl_1() - set SCL to 1
-  *     i2c_sda_0() - set SDA to 0
-  *     i2c_sda_1() - set SDA to 1
-  *     i2c_sda()   - get SDA state;
-  * For AVR hardware I2C realization define constant
-  *     I2C_AVR
-  */
-
 #ifndef UL_I2C_H_
     #define UL_I2C_H_
 
+/*============================================================================*/
+/*============================================================================*/
+
+#include <stdint.h>
+#include <avr/io.h>
+#include <util/delay.h>
+
+#define delay_us _delay_us
+
+typedef uint8_t U8;
+typedef uint16_t U16;
+
+//defines
+#define I2C_SOFT           //use soft I2C
+#define I2C_BAUD  100000uL //bitrate
+
+//bus lines manipulation
+inline void i2c_scl_0() { DDRB |= (1<<PB4); }           //set SCL to 0
+inline void i2c_scl_1() { DDRB &= ~(1<<PB4); }          //set SCL to 1
+inline   U8 i2c_scl()   { return !!(PINB & (1<<PB4)); } //read SCL state
+
+inline void i2c_sda_0() { DDRB |= (1<<PB3); }           //set SDA to 0
+inline void i2c_sda_1() { DDRB &= ~(1<<PB3); }          //set SDA to 1
+inline   U8 i2c_sda()   { return !!(PINB & (1<<PB3)); } //read SDA state
+
+/*============================================================================*/
+/*============================================================================*/
+
 #ifdef I2C_SOFT
-	#define i2c_delay_bit() delay_us(1000000UL / I2C_BAUD / 2)
+    #define i2c_delay_bit() delay_us(1000000UL / I2C_BAUD / 2)
 
     //START condition
-    void i2c_start(U8 bus);
+    void i2c_start();
     //STOP condition
-    void i2c_stop(U8 bus);
+    void i2c_stop();
     //write 1 bit to I2C bus
-    void i2c_wr_bit(U8 bus, U8 b);
+    void i2c_wr_bit(U8 b);
     //read 1 bit from I2C bus to 0th bit of result
-    U8 i2c_rd_bit(U8 bus);
+    U8 i2c_rd_bit();
     //write 1 byte to I2C, returns ACK bit
-    U8 i2c_wr_U8(U8 bus, U8 b);
+    U8 i2c_wr_U8(U8 b);
     //read 1 byte from I2C, then write ACK bit
-    U8 i2c_rd_U8(U8 bus, U8 ack);
+    U8 i2c_rd_U8(U8 ack);
 #endif
-
-//to include AVR hardware I2C realization define use_i2c_avr (если нужно, подключить функции аппаратного I2C AVR)
-#ifdef I2C_AVR
-
-	#define I2C_STATUS_MASK 0xF8
-    enum {
-    	I2C_CMD_START   = ((1 << TWINT)|(1 << TWEN)|(1 << TWSTA)),
-		I2C_CMD_STOP    = ((1 << TWINT)|(1 << TWEN)|(1 << TWSTO)),
-		I2C_CMD_WR      = ((1 << TWINT)|(1 << TWEN)),
-		I2C_CMD_RD_ACK  = ((1 << TWINT)|(1 << TWEN)|(1 << TWEA)),
-		I2C_CMD_RD_NACK = ((1 << TWINT)|(1 << TWEN))
-    };
-
-    inline U8 i2c_busy(U8 bus)    { return (!(TWCR & (1 << TWINT))); }
-    inline void i2c_start(U8 bus) { i2c_cmd_wait(I2C_CMD_START); }
-    inline void i2c_stop(U8 bus)  { i2c_cmd(I2C_CMD_STOP); delay_us(5); }
-
-    //wait for AVR TWI action to end
-    void i2c_wait(U8 bus);
-    //execute TWI command cmd
-    void i2c_cmd(U8 bus, U8 cmd);
-    //process AVR TWI command: TWCR=action, wait, return status of operation
-    U8 i2c_cmd_wait(U8 bus, U8 cmd);
-    //write 1 byte to I2C, return ACK bit
-    U8 i2c_wr_U8(U8 bus, U8 b);
-    //read 1 byte from I2C, then write ACK bit
-    U8 i2c_rd_U8(U8 bus, U8 ack);
-#endif
-
 
 void setup_i2c();
 
 //check presence or busy state of I2C device with bus address i2c_addr, return 0 if ack received, else status code
-U8 i2c_chkack(U8 bus, U8 addr);
+U8 i2c_chkack(U8 addr);
 
 //write buf_size bytes from *buf starting from 8-bit addr_start to device with 8-bit address addr_i2c
-U8 i2c_wr_a8_buf8(U8 bus, U8 addr_i2c, U8 addr_start, U8 *buf, U8 buf_size);
+void i2c_wr_a8_buf8(U8 addr_i2c, U8 addr_start, U8 *buf, U8 buf_size);
 
 //read buf_size bytes to *buf starting from 8-bit addr_start to device with 8-bit address addr_i2c
-U8 i2c_rd_a8_buf8(U8 bus, U8 addr_i2c, U8 addr_start, U8 *buf, U8 buf_size);
+void i2c_rd_a8_buf8(U8 addr_i2c, U8 addr_start, U8 *buf, U8 buf_size);
 
 // DS1307 definitions
 #define I2C_DS1307_ADDR      0xd0
